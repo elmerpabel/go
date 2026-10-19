@@ -10,3 +10,5 @@ coverage
 
 .superpowers/
 .kimchi/
+.env
+go-data/

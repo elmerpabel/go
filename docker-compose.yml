@@ -1,38 +1,38 @@
-# Dev-only credentials. Use environment variables or a secrets manager in production.
 services:
-  db:
+  go-db:
     image: postgres:16-alpine
+    container_name: go-db
+    restart: always
     environment:
-      POSTGRES_DB: shortener
-      POSTGRES_USER: shortener
-      POSTGRES_PASSWORD: shortener
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - shortener_pgdata:/var/lib/postgresql/data
+      - /root/u05-go/go-data/postgres:/var/lib/postgresql/data
+    networks:
+      - u00net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U shortener -d shortener"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 5
 
   app:
+    container_name: go-link-shortener
     build:
-      context: .
-    depends_on:
-      db:
-        condition: service_healthy
+      context: /root/u05-go-src
+      dockerfile: Dockerfile
+    restart: always
     env_file:
       - .env
-    environment:
-      APP_PORT: 3000
-      SHORTENER_DOMAIN: ${SHORTENER_DOMAIN:-go.example.com}
-      SHORTENER_SCHEME: ${SHORTENER_SCHEME:-https}
-      DATABASE_URL: postgres://shortener:shortener@db:5432/shortener
-      ADMIN_TOKEN: ${ADMIN_TOKEN:-change-me}
-      REDIRECT_STATUS_CODE: ${REDIRECT_STATUS_CODE:-302}
     ports:
-      - "3000:3000"
+      - "8500:3000"
+    depends_on:
+      go-db:
+        condition: service_healthy
+    networks:
+      - u00net
 
-volumes:
-  shortener_pgdata:
+networks:
+  u00net:
+    external: true
